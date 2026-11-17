@@ -233,15 +233,15 @@ button.slab:not(:disabled):active::after,a.slab:active::after{transform:translat
 .track .fill-wrap{position:absolute;inset:0;border-radius:inherit;overflow:hidden}
 .track .fill{position:absolute;inset:0;background:var(--mint);background-image:repeating-linear-gradient(-45deg,transparent 0 8px,rgba(34,17,63,.12) 8px 14px);transform-origin:0 50%;transform:scaleX(.25);transition:transform .6s var(--ease-pop)}
 .track .marker{position:absolute;top:-17px;left:0;width:34px;height:40px;transition:transform .6s var(--ease-pop);pointer-events:none}
-.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-.steps li{display:flex;align-items:center;gap:6px;font:600 12px/1.2 var(--font-body);color:var(--muted);min-width:0}
+.steps{list-style:none;margin:0 4px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.steps li{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font:600 12px/1.2 var(--font-body);color:var(--muted);min-width:0}
 .steps .n{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:800 11px/1 var(--font-display);background:var(--white);color:var(--ink)}
-.steps .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps .lbl{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .steps li.done .n{background:var(--mint)}
 .steps li[aria-current="step"]{color:var(--ink)}
 .steps li[aria-current="step"] .n{background:var(--violet);color:#fff;animation:pop .4s var(--ease-pop)}
 @keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
-@media (max-width:479px){.steps li:not([aria-current="step"]) .lbl{display:none}.steps li[aria-current="step"]{grid-column:span 1}.steps{grid-template-columns:auto auto auto auto;justify-content:start;gap:8px}}
+@media (max-width:479px){.steps li:not([aria-current="step"]) .lbl{visibility:hidden}}
 
 .picked{display:flex;flex-wrap:wrap;gap:8px}
 .picked:empty{display:none}
@@ -900,9 +900,11 @@ async function showStep(n) {
 
 function updateProgress(n) {
   $('#step-count').innerHTML = `Paso <b>${n}</b> de 4`;
-  $('#fill').style.transform = `scaleX(${n / 4})`;
+  // Centro de la columna del paso actual: Tico queda justo encima de su círculo.
+  const punta = (n - 0.5) / 4;
+  $('#fill').style.transform = `scaleX(${punta})`;
   const track = $('.track'); const w = track.clientWidth;
-  $('#marker').style.transform = `translateX(${Math.max(0, w * n / 4 - 30)}px)`;
+  $('#marker').style.transform = `translateX(${w * punta - 17}px)`;
   $$('#steps li').forEach((li, i) => {
     const k = i + 1;
     li.classList.toggle('done', k < n);
