@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="es-VE">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dientico Demo</title>
+<meta name="description" content="Demostración de Dientico: reserva de citas odontológicas en línea, con datos de ejemplo.">
+<link rel="icon" href="logo.svg">
+<meta name="theme-color" content="#3DF5B0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============ Tokens ============ */
+:root{
+  --ink:#22113F;          /* tinta violeta noche: texto, bordes, sombras */
+  --paper:#F6F2FF;        /* papel lavanda */
+  --white:#FFFFFF;
+  --mint:#3DF5B0;         /* menta eléctrica */
+  --mint-soft:#CFFDEB;
+  --sun:#FFD23F;          /* amarillo sol */
+  --sun-soft:#FFF1B8;
+  --violet:#6A2BDB;       /* violeta: acción primaria, foco */
+  --violet-soft:#E8DDFF;
+  --muted:#54476E;        /* texto secundario */
+  --error:#B4123E;
+  --error-soft:#FFE3EA;
+
+  --font-display:"Unbounded", "Arial Black", system-ui, sans-serif;
+  --font-body:"Lexend", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --b:3px;                /* borde grueso */
+  --lift:5px;             /* sombra sólida desplazada */
+  --r-s:12px; --r-m:18px; --r-l:28px; --r-pill:999px;
+
+  --ease-pop:cubic-bezier(.34,1.56,.64,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  color-scheme:light;
+}
+
+/* ============ Base ============ */
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;min-height:100vh;
+  font:400 16px/1.5 var(--font-body);
+  color:var(--ink);
+  background-color:var(--paper);
+  background-image:radial-gradient(#DCCFFB 1.4px, transparent 1.6px);
+  background-size:22px 22px;
+}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--violet);text-underline-offset:3px;text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--violet);outline-offset:3px;border-radius:6px}
+.hero :focus-visible{outline-color:var(--ink)}
+.vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:12px;top:-60px;z-index:50;background:var(--ink);color:#fff;padding:12px 16px;border-radius:12px;font-weight:600}
+.skip:focus{top:12px}
+.ico{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* ============ Losa: borde grueso + sombra sólida que se hunde al tocar ============ */
+.slab{position:relative;isolation:isolate;background:transparent;border:0;color:var(--ink);--face:var(--white);--sh:var(--ink);border-radius:var(--r-m)}
+.slab::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--face);border:var(--b) solid var(--ink);border-radius:inherit}
+.slab::after{content:"";position:absolute;inset:0;z-index:-2;background:var(--sh);border-radius:inherit;transform:translate(var(--lift),var(--lift))}
+button.slab,a.slab{cursor:pointer;transition:transform .2s var(--ease-pop)}
+button.slab::after,a.slab::after{transition:transform .2s var(--ease-pop)}
+@media (hover:hover){
+  button.slab:not(:disabled):hover,a.slab:hover{transform:translate(-2px,-2px)}
+  button.slab:not(:disabled):hover::after,a.slab:hover::after{transform:translate(calc(var(--lift) + 2px),calc(var(--lift) + 2px))}
+}
+button.slab:not(:disabled):active,a.slab:active{transform:translate(4px,4px);transition-duration:.06s}
+button.slab:not(:disabled):active::after,a.slab:active::after{transform:translate(calc(var(--lift) - 4px),calc(var(--lift) - 4px));transition-duration:.06s}
+
+/* Botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:12px 16px;border-radius:var(--r-pill);font:700 16px/1.2 var(--font-display);letter-spacing:.005em;text-decoration:none;text-align:center;width:100%}
+.btn.primary{--face:var(--violet);color:#fff}
+.btn.secondary{--face:var(--white)}
+.btn.sun{--face:var(--sun)}
+.btn.danger{--face:var(--error);color:#fff}
+.btn.quiet{min-height:48px;background:none;border:0;color:var(--error);font:600 16px var(--font-body);text-decoration:underline;text-underline-offset:4px;cursor:pointer;width:100%;border-radius:12px}
+.btn:disabled{cursor:not-allowed;--face:#EDE8F7;color:#6B6185}
+.btn:disabled::after{transform:translate(2px,2px)}
+.btn[aria-busy="true"]{cursor:progress}
+.link-btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 4px;background:none;border:0;color:var(--violet);font:600 16px var(--font-body);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;cursor:pointer}
+
+/* Stickers */
+.sticker{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:var(--b) solid var(--ink);border-radius:var(--r-pill);background:var(--sun);box-shadow:3px 3px 0 var(--ink);font:700 12px/1.2 var(--font-display);transform:rotate(var(--rot,-4deg));white-space:nowrap}
+.sticker.white{background:var(--white)}
+.sticker.mint{background:var(--mint)}
+
+/* ============ Barra superior ============ */
+.topbar{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--ink);text-decoration:none;border-radius:10px}
+.brand svg{display:block}
+.brand .by{font:500 13px var(--font-body);color:var(--muted)}
+.topbar .link-btn{font-size:15px}
+
+/* ============ Layout ============ */
+.layout{max-width:1200px;margin:0 auto;padding:4px 16px 32px;display:grid;grid-template-columns:minmax(0,1fr);gap:28px}
+.main-col{min-width:0}
+
+/* ============ Hero del consultorio ============ */
+.hero{--face:var(--mint);--lift:8px;border-radius:var(--r-l);padding:20px 20px 24px;margin-right:8px}
+.hero-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mono{width:52px;height:52px;flex:none;border-radius:50%;background:var(--violet);color:#fff;border:var(--b) solid var(--ink);display:grid;place-items:center;font:800 14px/1 var(--font-display);letter-spacing:.02em}
+.hero-top .sticker:nth-of-type(1){--rot:-6deg}
+.hero-top .sticker:nth-of-type(2){--rot:5deg}
+.clinic-name{font:800 clamp(28px,8.4vw,52px)/1.02 var(--font-display);letter-spacing:-.015em;margin-top:18px;max-width:12ch}
+.hero-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;margin-top:14px}
+.hero-info{display:grid;gap:10px;font-size:15px;line-height:1.4}
+.hero-info .row{display:flex;gap:8px;align-items:flex-start}
+.hero-info .row .ico{margin-top:1px}
+.hero-info a{color:var(--ink);font-weight:600;display:inline-flex;min-height:44px;align-items:center}
+.buddy{position:relative;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.buddy .tico{width:116px;height:auto;margin:-6px -6px -10px 0}
+.bubble{position:relative;background:var(--white);border:var(--b) solid var(--ink);border-radius:18px;padding:10px 14px;font:600 15px/1.3 var(--font-body);box-shadow:4px 4px 0 var(--ink);max-width:240px}
+.bubble::after{content:"";position:absolute;width:14px;height:14px;background:var(--white);border-right:var(--b) solid var(--ink);border-bottom:var(--b) solid var(--ink);right:34px;bottom:-9px;transform:rotate(45deg)}
+.buddy .bubble{display:none}
+.hero-ctas{display:grid;gap:16px;margin-top:20px}
+.hero-ctas .btn.secondary .ico{width:22px;height:22px}
+
+/* Hero compacto en móvil cuando reservas */
+@media (max-width:959px){
+  body[data-view="home"] .hero{margin-top:74px}
+  body[data-view="home"] .hero-body{grid-template-columns:minmax(0,1fr)}
+  body[data-view="home"] .buddy{position:absolute;right:22px;top:-86px}
+  body[data-view="home"] .buddy .tico{width:80px;margin:0}
+  body:not([data-view="home"]) .hero{padding:12px 16px 12px;--lift:6px}
+  body:not([data-view="home"]) .hero-top,
+  body:not([data-view="home"]) .hero-info,
+  body:not([data-view="home"]) .hero-ctas{display:none}
+  body:not([data-view="home"]) .clinic-name{font-size:15px;margin:0;max-width:none;letter-spacing:0}
+  body:not([data-view="home"]) .hero-body{grid-template-columns:minmax(0,1fr);margin-top:6px}
+  body:not([data-view="home"]) .buddy{flex-direction:row;align-items:center;gap:14px}
+  body:not([data-view="home"]) .buddy .tico{width:70px;margin:0 0 -4px -4px;order:-1}
+  body:not([data-view="home"]) .buddy .bubble{display:block;flex:1;max-width:none}
+  body:not([data-view="home"]) .buddy .bubble::after{right:auto;left:-9px;bottom:auto;top:calc(50% - 7px);border-right:0;border-top:var(--b) solid var(--ink);transform:rotate(45deg)}
+}
+
+/* ============ Mascota Tico ============ */
+.tico{display:block;overflow:visible}
+.tico .t-jump,.tico .t-float,.tico .t-eye,.tico .t-look,.tico .spark{transform-box:fill-box;transform-origin:50% 50%}
+.tico .t-jump{transform-origin:50% 100%}
+.tico .t-float{animation:float 3.4s ease-in-out infinite}
+.tico .t-eye{animation:blink 4.6s infinite}
+.tico .t-eye.r{animation-delay:.02s}
+.tico .t-look{transition:transform .25s var(--ease-out)}
+.tico .mouth{opacity:0;transition:opacity .12s linear}
+.tico[data-mood="idle"] .m-smile,
+.tico[data-mood="escribe"] .m-smile,
+.tico[data-mood="feliz"] .m-grin,
+.tico[data-mood="brillo"] .m-grin,
+.tico[data-mood="fiesta"] .m-grin,
+.tico[data-mood="curioso"] .m-o,
+.tico[data-mood="duda"] .m-worry,
+.tico[data-mood="triste"] .m-sad{opacity:1}
+.tico .cheeks{opacity:.3;transition:opacity .2s}
+.tico[data-mood="feliz"] .cheeks,.tico[data-mood="fiesta"] .cheeks,.tico[data-mood="brillo"] .cheeks{opacity:.6}
+.tico .tear{opacity:0;transition:opacity .2s}
+.tico[data-mood="triste"] .tear{opacity:1}
+.tico .spark{opacity:0;transform:scale(.2)}
+.tico[data-mood="brillo"] .spark,.tico[data-mood="fiesta"] .spark{animation:twinkle 1.3s var(--ease-pop) infinite}
+.tico .spark:nth-of-type(2){animation-delay:.25s}
+.tico .spark:nth-of-type(3){animation-delay:.5s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}95.5%{transform:scaleY(.1)}}
+@keyframes twinkle{0%{opacity:0;transform:scale(.2) rotate(0)}40%{opacity:1;transform:scale(1.1) rotate(20deg)}100%{opacity:0;transform:scale(.6) rotate(45deg)}}
+
+/* ============ Vistas ============ */
+.view{display:grid;gap:28px}
+.sec-title{font:800 21px/1.2 var(--font-display);letter-spacing:-.005em}
+.sec-head{display:grid;gap:4px;margin-bottom:14px}
+.sec-head p{color:var(--muted);font-size:15px}
+
+/* Entrada orquestada (una sola secuencia) */
+.rise{opacity:0;transform:translateY(14px)}
+.is-entering .rise{animation:rise .5s var(--ease-out) forwards;animation-delay:calc(var(--i,0) * 60ms + 120ms)}
+@keyframes rise{to{opacity:1;transform:none}}
+.load .hero{animation:heroIn .55s var(--ease-pop) both}
+.load .hero-top .sticker{animation:slap .45s var(--ease-pop) both}
+.load .hero-top .sticker:nth-of-type(1){animation-delay:.45s}
+.load .hero-top .sticker:nth-of-type(2){animation-delay:.6s}
+.load .buddy .tico{animation:peek .7s var(--ease-pop) .3s both}
+@keyframes heroIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes slap{from{opacity:0;transform:rotate(var(--rot)) scale(1.7)}to{opacity:1;transform:rotate(var(--rot)) scale(1)}}
+@keyframes peek{from{opacity:0;transform:translateY(40px) rotate(-8deg)}to{opacity:1;transform:none}}
+
+/* Dentistas */
+.team{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.doc{display:flex;gap:14px;align-items:center;padding:14px 16px;--lift:4px}
+.avatar{width:52px;height:52px;flex:none;border-radius:50%;border:var(--b) solid var(--ink);display:grid;place-items:center;font:800 15px/1 var(--font-display);background:var(--mint)}
+.avatar.sun{background:var(--sun)}
+.avatar.violet{background:var(--violet-soft)}
+.doc .who{min-width:0;display:grid;gap:2px}
+.doc .name{font-weight:700;font-size:16px}
+.doc .spec{font-size:14px;color:var(--muted);line-height:1.35}
+.cov{display:inline-flex;align-items:center;gap:6px;margin-top:6px;justify-self:start;padding:4px 10px 4px 6px;border:2px solid var(--ink);border-radius:var(--r-pill);background:var(--mint-soft);font:600 13px/1.2 var(--font-body)}
+.cov .ico{width:18px;height:18px}
+
+/* Opciones (tratamientos, profesionales) */
+.opts{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.opt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;width:100%;min-height:76px;padding:16px 18px 16px 18px;text-align:left;margin-right:var(--lift)}
+.opt .t{font:700 16px/1.25 var(--font-display)}
+.opt .d{font-size:14px;color:var(--muted);line-height:1.4;grid-column:1}
+.opt .meta{grid-column:1;display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 7px;border:2px solid var(--ink);border-radius:var(--r-pill);font:600 13px/1.3 var(--font-body);background:var(--white)}
+.chip .ico{width:16px;height:16px}
+.price{grid-column:2;grid-row:1 / span 3;align-self:center;font:800 20px/1 var(--font-display);background:var(--sun);border:var(--b) solid var(--ink);border-radius:14px;padding:10px 10px;transform:rotate(-5deg);box-shadow:3px 3px 0 var(--ink);min-width:64px;text-align:center}
+.opt.doc-opt{grid-template-columns:auto minmax(0,1fr) auto}
+.opt.doc-opt .who{display:grid;gap:2px}
+.duo{display:flex}
+.duo .avatar{width:40px;height:40px;font-size:12px}
+.duo .avatar + .avatar{margin-left:-14px}
+.opt[aria-pressed="true"]{--face:var(--sun)}
+.opt[aria-pressed="true"] .price{background:var(--white)}
+.stamp{grid-column:-1;width:36px;height:36px;border-radius:50%;background:var(--mint);border:var(--b) solid var(--ink);display:grid;place-items:center;opacity:0;transform:scale(.3) rotate(-30deg)}
+.stamp .ico{width:20px;height:20px;stroke-width:3.2}
+.opt[aria-pressed="true"] .stamp{opacity:1;transform:none;transition:transform .35s var(--ease-pop),opacity .1s}
+.opt .price + .stamp{display:none}
+.opt[aria-pressed="true"] .price + .stamp{display:grid;position:absolute;top:-12px;right:-6px}
+
+.pay-note{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border:2px dashed var(--ink);border-radius:var(--r-m);background:var(--white);font-size:15px;line-height:1.45}
+
+/* ============ Reserva ============ */
+.progress{display:grid;gap:12px}
+.progress-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.back{display:inline-flex;align-items:center;gap:4px;min-height:44px;min-width:44px;padding:0 10px 0 2px;background:none;border:0;font:600 16px var(--font-body);color:var(--ink);cursor:pointer;border-radius:10px}
+.step-count{font:600 14px var(--font-body);color:var(--muted)}
+.step-count b{font:800 15px var(--font-display);color:var(--ink)}
+.track{position:relative;height:20px;border:var(--b) solid var(--ink);border-radius:var(--r-pill);background:var(--white);margin-right:4px;box-shadow:3px 3px 0 var(--ink)}
+.track .fill-wrap{position:absolute;inset:0;border-radius:inherit;overflow:hidden}
+.track .fill{position:absolute;inset:0;background:var(--mint);background-image:repeating-linear-gradient(-45deg,transparent 0 8px,rgba(34,17,63,.12) 8px 14px);transform-origin:0 50%;transform:scaleX(.25);transition:transform .6s var(--ease-pop)}
+.track .marker{position:absolute;top:-17px;left:0;width:34px;height:40px;transition:transform .6s var(--ease-pop);pointer-events:none}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.steps li{display:flex;align-items:center;gap:6px;font:600 12px/1.2 var(--font-body);color:var(--muted);min-width:0}
+.steps .n{width:24px;height:24px;flex:none;border-radius:50%;border:2px solid var(--ink);display:grid;place-items:center;font:800 11px/1 var(--font-display);background:var(--white);color:var(--ink)}
+.steps .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps li.done .n{background:var(--mint)}
+.steps li[aria-current="step"]{color:var(--ink)}
+.steps li[aria-current="step"] .n{background:var(--violet);color:#fff;animation:pop .4s var(--ease-pop)}
+@keyframes pop{0%{transform:scale(.6)}100%{transform:scale(1)}}
+@media (max-width:479px){.steps li:not([aria-current="step"]) .lbl{display:none}.steps li[aria-current="step"]{grid-column:span 1}.steps{grid-template-columns:auto auto auto auto;justify-content:start;gap:8px}}
+
+.picked{display:flex;flex-wrap:wrap;gap:8px}
+.picked:empty{display:none}
+.pick{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:6px 14px 6px 10px;border:2px solid var(--ink);border-radius:var(--r-pill);background:var(--white);font:600 14px/1.2 var(--font-body);cursor:pointer;max-width:100%}
+.pick .ico{width:16px;height:16px;color:var(--violet)}
+.pick span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (hover:hover){.pick:hover{background:var(--violet-soft)}}
+
+.step{display:grid;gap:18px}
+.step-title{font:800 24px/1.15 var(--font-display);letter-spacing:-.01em}
+.step-title:focus{outline:none}
+.step-title:focus-visible{outline:3px solid var(--violet)}
+.step-lead{color:var(--muted);font-size:15px;margin-top:-10px}
+
+/* Días y horas */
+.days{display:flex;gap:10px;overflow-x:auto;padding:4px 8px 12px 2px;margin:0 -16px 0 -2px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.day{flex:none;width:66px;min-height:84px;display:grid;justify-items:center;align-content:center;gap:2px;border-radius:var(--r-m);--lift:4px;scroll-snap-align:start;margin-right:4px}
+.day .wd{font:600 13px/1 var(--font-body);text-transform:lowercase}
+.day .dn{font:800 22px/1.1 var(--font-display)}
+.day .mo{font:500 12px/1 var(--font-body);color:var(--muted)}
+.day[aria-pressed="true"]{--face:var(--violet);color:#fff}
+.day[aria-pressed="true"] .mo{color:#fff}
+.day.full{cursor:not-allowed;color:var(--muted)}
+.day.full::before{border-style:dashed;background:transparent}
+.day.full::after{opacity:0}
+button.slab.full:hover,button.slab.full:active{transform:none!important}
+.part{display:grid;gap:10px}
+.part h3{font:700 15px/1.2 var(--font-display);display:flex;align-items:center;gap:8px}
+.part h3 small{font:500 13px var(--font-body);color:var(--muted)}
+.pills{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px;padding-right:4px}
+@media (min-width:480px){.pills{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.pill{min-height:52px;border-radius:var(--r-pill);--lift:4px;display:flex;align-items:center;justify-content:center;padding:0 8px;font:700 17px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.pill[aria-pressed="true"]{--face:var(--violet);color:#fff;animation:pillpop .35s var(--ease-pop)}
+@keyframes pillpop{0%{transform:scale(.85)}100%{transform:scale(1)}}
+.skel{height:52px;border-radius:var(--r-pill);background:#E3DAF7;animation:pulse 1s ease-in-out infinite alternate}
+@keyframes pulse{from{opacity:.5}to{opacity:1}}
+.empty{padding:18px;border:2px dashed var(--ink);border-radius:var(--r-m);background:var(--white);display:grid;gap:10px}
+.who-note{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:var(--r-m);background:var(--violet-soft);border:2px solid var(--ink);font-weight:500}
+.sticky-cta{position:sticky;bottom:0;z-index:5;padding:14px 6px 16px 0;margin-top:4px;background:linear-gradient(to top,var(--paper) 70%,rgba(246,242,255,0))}
+.why{font-size:14px;color:var(--muted);text-align:center;margin-top:10px}
+
+/* Formulario */
+.sheet{padding:16px 18px;border-radius:var(--r-m);--face:var(--white);--lift:4px;margin-right:4px;display:grid;gap:4px}
+.sheet .big{font:800 18px/1.25 var(--font-display)}
+.sheet .sm{font-size:14px;color:var(--muted)}
+form{display:grid;gap:18px}
+.row2{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:480px){.row2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.field{display:grid;gap:6px;min-width:0}
+.field label,.field .lab{font:600 15px var(--font-body)}
+.field label .opt-tag{font-weight:400;color:var(--muted)}
+.input,.select{width:100%;min-height:54px;padding:12px 14px;border:var(--b) solid var(--ink);border-radius:var(--r-s);background:var(--white);font:500 16px/1.25 var(--font-body);color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+.input::placeholder{color:#7B7093}
+.input:focus,.select:focus{outline:3px solid var(--violet);outline-offset:2px}
+.input[aria-invalid="true"],.select[aria-invalid="true"]{border-color:var(--error);box-shadow:3px 3px 0 var(--error);background:var(--error-soft)}
+.select{appearance:none;-webkit-appearance:none;padding-right:38px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(135deg,var(--ink) 50%,transparent 50%);
+  background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+.combo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px}
+.combo .select{width:84px}
+.prefix{display:grid;place-items:center;min-height:54px;padding:0 14px;border:var(--b) solid var(--ink);border-radius:var(--r-s);background:var(--sun-soft);font:700 16px var(--font-body);box-shadow:3px 3px 0 var(--ink)}
+.help{font-size:14px;color:var(--muted);line-height:1.4}
+.err{display:flex;gap:6px;align-items:flex-start;font:600 14px/1.4 var(--font-body);color:var(--error)}
+.err .ico{width:18px;height:18px;margin-top:1px}
+.shake{animation:shake .4s ease-in-out}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.consent{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;min-height:44px;cursor:pointer;font-size:15px;line-height:1.45}
+.consent input{position:absolute;opacity:0;width:32px;height:32px;margin:0;cursor:pointer}
+.boxwrap{position:relative;width:32px;height:32px}
+.box{width:32px;height:32px;border:var(--b) solid var(--ink);border-radius:9px;background:var(--white);display:grid;place-items:center;box-shadow:3px 3px 0 var(--ink);pointer-events:none}
+.box .ico{width:20px;height:20px;stroke-width:3.4;opacity:0;transform:scale(.3) rotate(-20deg);transition:transform .3s var(--ease-pop),opacity .1s}
+.consent input:checked + .box{background:var(--mint)}
+.consent input:checked + .box .ico{opacity:1;transform:none}
+.consent input:focus-visible + .box{outline:3px solid var(--violet);outline-offset:3px}
+.consent input[aria-invalid="true"] + .box{border-color:var(--error);box-shadow:3px 3px 0 var(--error)}
+details.privacy{font-size:14px;color:var(--muted)}
+details.privacy summary{display:inline-flex;align-items:center;min-height:44px;color:var(--violet);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+details.privacy p{padding:4px 0 6px;line-height:1.5}
+.fine{font-size:14px;color:var(--muted);text-align:center}
+
+/* ============ Confirmación ============ */
+.done-head{display:grid;gap:8px}
+.done-title{font:800 clamp(26px,7.4vw,36px)/1.1 var(--font-display);letter-spacing:-.015em}
+.done-title:focus{outline:none}
+.ticket{--face:var(--white);--lift:8px;border-radius:var(--r-l);margin-right:8px;overflow:visible}
+.ticket-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:var(--b) var(--b) 0;padding:14px 18px;background:var(--mint);border-radius:calc(var(--r-l) - var(--b)) calc(var(--r-l) - var(--b)) 0 0;font:700 14px var(--font-display)}
+.ticket-top .sticker{--rot:6deg;font-size:11px}
+.ticket-body{padding:18px 20px 22px;display:grid;gap:4px;border-top:var(--b) dashed var(--ink)}
+.ticket .date{font:600 17px var(--font-body)}
+.ticket .time{font:800 clamp(48px,15vw,68px)/1 var(--font-display);letter-spacing:-.03em;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px}
+.ticket .time small{font:700 20px var(--font-display);letter-spacing:0}
+.ticket .lines{display:grid;gap:8px;margin-top:12px;font-size:15px}
+.ticket .lines div{display:flex;gap:10px;align-items:flex-start}
+.ticket .lines .ico{margin-top:1px;color:var(--violet)}
+.actions{display:grid;gap:16px}
+.burst{position:absolute;inset:0;pointer-events:none}
+
+/* Confeti */
+.confetti-layer{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:40}
+.cf{position:absolute;width:12px;height:16px;border:2px solid var(--ink);border-radius:3px;will-change:transform,opacity}
+.cf.c1{border-radius:50%;width:13px;height:13px}
+.cf.c2{width:8px;height:20px;border-radius:6px}
+.starburst{position:fixed;width:220px;height:220px;margin:-110px 0 0 -110px;pointer-events:none;z-index:39;opacity:0}
+
+/* ============ Página /t/<token> ============ */
+.status{display:inline-flex;align-items:center;gap:6px;justify-self:start;padding:6px 12px 6px 8px;border-radius:var(--r-pill);font:600 14px/1.2 var(--font-body);border:2px dashed var(--ink);background:var(--sun-soft);margin-top:10px}
+.status.ok{border-style:solid;background:var(--mint)}
+.status.off{border-style:solid;background:#ECE8F3}
+.status .ico{width:18px;height:18px}
+.ticket.cancelled .time,.ticket.cancelled .date{text-decoration:line-through;text-decoration-thickness:3px;color:var(--muted)}
+.ask{padding:18px;--face:var(--error-soft);--lift:5px;margin-right:6px;display:grid;gap:14px;border-radius:var(--r-m)}
+.ask h3{font:800 18px/1.25 var(--font-display)}
+.token-url{font:500 14px var(--font-body);color:var(--muted);display:flex;align-items:center;gap:6px;word-break:break-all}
+.token-msg{font-size:17px;font-weight:600}
+
+footer.foot{max-width:1200px;margin:0 auto;padding:8px 16px 40px;color:var(--muted);font-size:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+footer.foot svg{display:inline-block;vertical-align:middle}
+
+/* ============ Escritorio ============ */
+@media (min-width:960px){
+  .topbar{padding:18px 32px}
+  .layout{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:56px;padding:8px 32px 48px;align-items:start}
+  .hero-col{position:sticky;top:20px}
+  .hero{padding:28px 30px 32px}
+  .clinic-name{font-size:52px}
+  .hero-body{gap:16px;margin-top:18px}
+  .buddy{width:220px}
+  .buddy .tico{width:190px;margin:-10px -14px -18px 0}
+  .buddy .bubble{display:block;width:100%}
+  body:not([data-view="home"]) #hero-book{display:none}
+  .team{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opts.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .step-title{font-size:30px}
+  .main-col{padding-top:6px}
+  footer.foot{padding:8px 32px 40px}
+}
+
+/* ============ Movimiento reducido ============ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;animation-delay:0s!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .rise{opacity:1;transform:none}
+  .tico .t-eye{animation:none}
+}
+.demo-note{max-width:1200px;margin:0 auto;padding:10px 16px 0;display:flex;justify-content:center}
+.demo-note p{display:inline-flex;padding:6px 14px;border:2px dashed var(--ink);border-radius:var(--r-pill);background:var(--sun-soft);font:600 13px/1.35 var(--font-body);color:var(--ink);text-align:center}
+</style>
+</head>
+<body data-view="home" class="load">
+<div class="demo-note"><p>Demostración de Dientico con datos de ejemplo: las reservas no son reales.</p></div>
+<a class="skip" href="#main">Saltar al contenido</a>
+
+<!-- Íconos reutilizables -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 3.4 6.5L4 20l1.2-3.7A8 8 0 0 1 4 12z"/><path d="M9 11h6M9 14h4"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-seal" viewBox="0 0 24 24"><path d="M12 2.8l2.4 1.7 2.9-.1.9 2.8 2.3 1.8-.9 2.8.9 2.8-2.3 1.8-.9 2.8-2.9-.1L12 21.2l-2.4-1.7-2.9.1-.9-2.8-2.3-1.8.9-2.8-.9-2.8 2.3-1.8.9-2.8 2.9.1z"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v.01M18 14.5v.01"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+</svg>
+
+<header class="topbar">
+  <a class="brand" href="#inicio" aria-label="Dientico, inicio del consultorio">
+    <svg width="132" height="36" viewBox="0 0 532 140" aria-hidden="true">
+      <rect x="12" y="12" width="116" height="116" rx="32" fill="#22113F"/>
+      <rect x="4" y="4" width="116" height="116" rx="32" fill="#3DF5B0" stroke="#22113F" stroke-width="7"/>
+      <g transform="translate(13 9) scale(.7)">
+        <path d="M22 40 C22 16 50 10 70 22 C90 10 118 16 118 40 C118 64 110 78 108 100 C106 122 101 140 92 140 C82 140 80 116 70 116 C60 116 58 140 48 140 C39 140 34 122 32 100 C30 78 22 64 22 40 Z" fill="#fff" stroke="#22113F" stroke-width="8" stroke-linejoin="round"/>
+        <ellipse cx="55" cy="62" rx="7" ry="9.5" fill="#22113F"/><ellipse cx="85" cy="62" rx="7" ry="9.5" fill="#22113F"/>
+        <path d="M57 83 Q70 99 83 83" fill="none" stroke="#22113F" stroke-width="7" stroke-linecap="round"/>
+      </g>
+      <g transform="translate(150 0)" fill="none" stroke="#22113F" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="30" cy="76" r="18"/><path d="M48 34 V94"/><path d="M70 58 V94"/>
+        <path d="M92 76 H128 A18 18 0 1 0 122.7 88.7"/><path d="M150 58 V94 M150 76 A18 18 0 0 1 186 76 V94"/>
+        <path d="M212 34 V82 A12 12 0 0 0 224 94 H230 M200 58 H228"/><path d="M252 58 V94"/>
+        <path d="M304.7 63.3 A18 18 0 1 0 304.7 88.7"/><circle cx="345" cy="76" r="18"/>
+      </g>
+      <g transform="translate(150 0)" stroke="#22113F" stroke-width="4"><circle cx="70" cy="37" r="8" fill="#FFD23F"/><circle cx="252" cy="37" r="8" fill="#3DF5B0"/></g>
+    </svg>
+  </a>
+  <a class="link-btn" href="#t/7Kx9Qa">¿Ya tienes cita?</a>
+</header>
+
+<div class="layout">
+  <!-- ============ Hero del consultorio ============ -->
+  <aside class="hero-col">
+    <section class="hero slab" aria-labelledby="clinic-name">
+      <div class="hero-top">
+        <span class="mono" aria-hidden="true">CDD</span>
+        <span class="sticker">Niños bienvenidos</span>
+        <span class="sticker white">Sin crear cuenta</span>
+      </div>
+      <h1 id="clinic-name" class="clinic-name">Consultorio Dental Demo</h1>
+      <div class="hero-body">
+        <div class="hero-info">
+          <div class="row"><svg class="ico" aria-hidden="true"><use href="#i-pin"/></svg>
+            <div>Av. Francisco de Miranda, Chacao, Caracas<br>
+              <a href="https://www.google.com/maps/search/?api=1&query=Chacao%2C%20Caracas" target="_blank" rel="noopener">Cómo llegar</a></div></div>
+          <div class="row"><svg class="ico" aria-hidden="true"><use href="#i-clock"/></svg>
+            <div>Lunes a viernes, de 8:00&nbsp;a.&nbsp;m. a 5:00&nbsp;p.&nbsp;m.<br>Sábados, hasta el mediodía.</div></div>
+        </div>
+        <div class="buddy">
+          <p class="bubble" aria-hidden="true" data-bubble>¡Hola! Soy Tico. Reservamos en un minuto.</p>
+          <svg class="tico" data-mood="idle" viewBox="0 0 140 156" aria-hidden="true">
+            <g class="t-jump"><g class="t-float">
+              <path d="M22 40 C22 16 50 10 70 22 C90 10 118 16 118 40 C118 64 110 78 108 100 C106 122 101 140 92 140 C82 140 80 116 70 116 C60 116 58 140 48 140 C39 140 34 122 32 100 C30 78 22 64 22 40 Z" fill="#22113F" transform="translate(7 7)"/>
+              <path d="M22 40 C22 16 50 10 70 22 C90 10 118 16 118 40 C118 64 110 78 108 100 C106 122 101 140 92 140 C82 140 80 116 70 116 C60 116 58 140 48 140 C39 140 34 122 32 100 C30 78 22 64 22 40 Z" fill="#fff" stroke="#22113F" stroke-width="5" stroke-linejoin="round"/>
+              <path d="M34 36 C36 28 43 24 50 25" fill="none" stroke="#3DF5B0" stroke-width="6" stroke-linecap="round"/>
+              <g class="cheeks"><ellipse cx="42" cy="80" rx="8" ry="5" fill="#6A2BDB"/><ellipse cx="98" cy="80" rx="8" ry="5" fill="#6A2BDB"/></g>
+              <g class="t-look">
+                <g class="t-eye l"><ellipse cx="55" cy="62" rx="6.5" ry="9" fill="#22113F"/><circle cx="57.4" cy="58" r="2.3" fill="#fff"/></g>
+                <g class="t-eye r"><ellipse cx="85" cy="62" rx="6.5" ry="9" fill="#22113F"/><circle cx="87.4" cy="58" r="2.3" fill="#fff"/></g>
+              </g>
+              <path class="tear" d="M96 72 C96 72 101 79 101 82 A5 5 0 0 1 91 82 C91 79 96 72 96 72Z" fill="#3DF5B0" stroke="#22113F" stroke-width="2.5"/>
+              <path class="mouth m-smile" d="M58 84 Q70 97 82 84" fill="none" stroke="#22113F" stroke-width="5" stroke-linecap="round"/>
+              <g class="mouth m-grin"><path d="M53 81 Q70 108 87 81 Z" fill="#22113F" stroke="#22113F" stroke-width="4" stroke-linejoin="round"/><path d="M62 95 Q70 89 78 95 Q74 100.5 70 100.5 Q66 100.5 62 95Z" fill="#6A2BDB"/></g>
+              <ellipse class="mouth m-o" cx="70" cy="90" rx="5.5" ry="7" fill="#22113F"/>
+              <path class="mouth m-worry" d="M57 91 Q63.5 84 70 91 Q76.5 98 83 91" fill="none" stroke="#22113F" stroke-width="5" stroke-linecap="round"/>
+              <path class="mouth m-sad" d="M58 95 Q70 83 82 95" fill="none" stroke="#22113F" stroke-width="5" stroke-linecap="round"/>
+            </g></g>
+            <g class="sparks" fill="#FFD23F" stroke="#22113F" stroke-width="2.5" stroke-linejoin="round">
+              <path class="spark" d="M126 18 L129 27 L138 30 L129 33 L126 42 L123 33 L114 30 L123 27Z"/>
+              <path class="spark" d="M10 60 L12 66 L18 68 L12 70 L10 76 L8 70 L2 68 L8 66Z"/>
+              <path class="spark" d="M120 104 L122 110 L128 112 L122 114 L120 120 L118 114 L112 112 L118 110Z"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="hero-ctas">
+        <button class="btn primary slab" id="hero-book" type="button">Reserva tu cita</button>
+        <a class="btn secondary slab" href="https://wa.me/584125550100?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20cita" target="_blank" rel="noopener">
+          <svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Chatea por WhatsApp</a>
+      </div>
+    </section>
+  </aside>
+
+  <main id="main" class="main-col">
+    <!-- ============ Inicio ============ -->
+    <section class="view view-home" data-v="home" aria-label="Tratamientos y equipo">
+      <div class="rise" style="--i:0">
+        <div class="sec-head"><h2 class="sec-title">Te atienden</h2></div>
+        <div class="team" id="team"></div>
+      </div>
+      <div class="rise" style="--i:2">
+        <div class="sec-head"><h2 class="sec-title">Tratamientos</h2><p>Toca uno para reservar. Pagas en el consultorio.</p></div>
+        <div class="opts" id="home-treats"></div>
+      </div>
+      <p class="pay-note rise" style="--i:3"><svg class="ico" aria-hidden="true"><use href="#i-cash"/></svg>
+        <span>Los precios están en dólares. Puedes pagar en $ o en bolívares a la tasa BCV del día, con Pago Móvil, punto de venta o efectivo.</span></p>
+    </section>
+
+    <!-- ============ Reserva ============ -->
+    <section class="view view-book" data-v="book" aria-label="Reserva tu cita" hidden>
+      <div class="progress">
+        <div class="progress-meta">
+          <button class="back" type="button" id="back"><svg class="ico" aria-hidden="true"><use href="#i-back"/></svg>Volver</button>
+          <p class="step-count" id="step-count">Paso <b>1</b> de 4</p>
+        </div>
+        <div class="track" aria-hidden="true">
+          <div class="fill-wrap"><div class="fill" id="fill"></div></div>
+          <svg class="marker" id="marker" viewBox="0 0 140 156"><path d="M22 40 C22 16 50 10 70 22 C90 10 118 16 118 40 C118 64 110 78 108 100 C106 122 101 140 92 140 C82 140 80 116 70 116 C60 116 58 140 48 140 C39 140 34 122 32 100 C30 78 22 64 22 40 Z" fill="#fff" stroke="#22113F" stroke-width="10" stroke-linejoin="round"/><ellipse cx="55" cy="62" rx="8" ry="11" fill="#22113F"/><ellipse cx="85" cy="62" rx="8" ry="11" fill="#22113F"/><path d="M56 86 Q70 102 84 86" fill="none" stroke="#22113F" stroke-width="9" stroke-linecap="round"/></svg>
+        </div>
+        <ol class="steps" id="steps">
+          <li><span class="n">1</span><span class="lbl">Tratamiento</span></li>
+          <li><span class="n">2</span><span class="lbl">Profesional</span></li>
+          <li><span class="n">3</span><span class="lbl">Día y hora</span></li>
+          <li><span class="n">4</span><span class="lbl">Tus datos</span></li>
+        </ol>
+        <div class="picked" id="picked"></div>
+      </div>
+
+      <div class="step" id="step-1" hidden>
+        <h2 class="step-title" tabindex="-1">Elige tu tratamiento</h2>
+        <div class="opts" id="opts-treat"></div>
+      </div>
+
+      <div class="step" id="step-2" hidden>
+        <h2 class="step-title" tabindex="-1">Elige quién te atiende</h2>
+        <p class="step-lead">Los dos están inscritos en el Colegio de Odontólogos de Venezuela.</p>
+        <div class="opts" id="opts-doc"></div>
+      </div>
+
+      <div class="step" id="step-3" hidden>
+        <h2 class="step-title" tabindex="-1">Elige día y hora</h2>
+        <div class="days" id="days" role="group" aria-label="Días de las próximas dos semanas"></div>
+        <div id="slots" aria-live="polite"></div>
+        <p class="who-note" id="who-note" hidden></p>
+        <div class="sticky-cta">
+          <button class="btn primary slab" type="button" id="to-4" disabled aria-describedby="why-3">Continuar</button>
+          <p class="why" id="why-3">Elige una hora para continuar.</p>
+        </div>
+      </div>
+
+      <div class="step" id="step-4" hidden>
+        <h2 class="step-title" tabindex="-1">Tus datos</h2>
+        <div class="sheet slab" id="sheet"></div>
+        <form id="form" novalidate>
+          <div class="row2">
+            <div class="field"><label for="f-nombre">Nombre</label>
+              <input class="input" id="f-nombre" name="nombre" autocomplete="given-name" placeholder="Ana" aria-describedby="e-nombre">
+              <p class="err" id="e-nombre" hidden></p></div>
+            <div class="field"><label for="f-apellido">Apellido</label>
+              <input class="input" id="f-apellido" name="apellido" autocomplete="family-name" placeholder="Rodríguez" aria-describedby="e-apellido">
+              <p class="err" id="e-apellido" hidden></p></div>
+          </div>
+          <div class="field"><label for="f-cedula">Cédula</label>
+            <div class="combo">
+              <select class="select" id="f-tipo" aria-label="Tipo de documento">
+                <option value="V">V</option><option value="E">E</option><option value="P">P</option>
+              </select>
+              <input class="input" id="f-cedula" name="cedula" inputmode="numeric" placeholder="12.345.678" aria-describedby="h-ced e-cedula">
+            </div>
+            <p class="help" id="h-ced">V si eres venezolano, E si eres extranjero residente y P si es pasaporte.</p>
+            <p class="err" id="e-cedula" hidden></p></div>
+          <div class="field"><label for="f-cel">Celular</label>
+            <div class="combo"><span class="prefix" aria-hidden="true">+58</span>
+              <input class="input" id="f-cel" name="celular" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="0414 123 4567" aria-describedby="h-cel e-cel"></div>
+            <p class="help" id="h-cel">Por aquí te recordamos la cita por WhatsApp.</p>
+            <p class="err" id="e-cel" hidden></p></div>
+          <div class="field"><label for="f-email">Correo <span class="opt-tag">(opcional)</span></label>
+            <input class="input" id="f-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="ana@gmail.com" aria-describedby="h-email e-email">
+            <p class="help" id="h-email">Si lo pones, también te llega la confirmación por correo.</p>
+            <p class="err" id="e-email" hidden></p></div>
+          <div class="field">
+            <label class="consent" for="f-ok">
+              <span class="boxwrap"><input type="checkbox" id="f-ok" aria-describedby="e-ok"><span class="box"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg></span></span>
+              <span>Acepto que Consultorio Dental Demo use estos datos para gestionar mi cita y avisarme por WhatsApp.</span>
+            </label>
+            <p class="err" id="e-ok" hidden></p>
+            <details class="privacy"><summary>Cómo cuidamos tus datos</summary>
+              <p>Solo los usa el consultorio para tu cita y tu historia. No se venden ni se comparten para publicidad. Puedes pedir que los borren escribiendo al consultorio.</p></details>
+          </div>
+          <button class="btn primary slab" id="submit" type="submit">Confirmar cita</button>
+          <p class="fine">No hace falta crear cuenta.</p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ Confirmación ============ -->
+    <section class="view view-done" data-v="done" aria-labelledby="done-title" hidden>
+      <div class="done-head rise" style="--i:0" aria-live="polite">
+        <h2 class="done-title" id="done-title" tabindex="-1">¡Listo! Tu cita quedó reservada.</h2>
+        <p id="done-sub">Un día antes te escribimos por WhatsApp para que la confirmes.</p>
+      </div>
+      <article class="ticket slab rise" style="--i:1" id="ticket" aria-label="Resumen de tu cita"></article>
+      <div class="actions rise" style="--i:2">
+        <button class="btn primary slab" type="button" id="ics"><svg class="ico" aria-hidden="true"><use href="#i-cal"/></svg>Agregar al calendario</button>
+        <a class="btn secondary slab" id="wa-save" href="#" target="_blank" rel="noopener"><svg class="ico" aria-hidden="true"><use href="#i-chat"/></svg>Guárdalo en WhatsApp</a>
+      </div>
+      <div class="rise" style="--i:3;display:grid;gap:4px;justify-items:start">
+        <a class="link-btn" href="#t/7Kx9Qa">¿No puedes ir? Mira tu enlace para confirmar o cancelar</a>
+        <a class="link-btn" href="#inicio">Volver al consultorio</a>
+      </div>
+    </section>
+
+    <!-- ============ /t/<token> ============ -->
+    <section class="view view-token" data-v="token" aria-labelledby="token-title" hidden>
+      <div class="done-head rise" style="--i:0">
+        <p class="token-url"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>dientico.app/t/7Kx9Qa</p>
+        <h2 class="done-title" id="token-title" tabindex="-1">Tu cita</h2>
+      </div>
+      <article class="ticket slab rise" style="--i:1" id="token-ticket" aria-label="Tu cita"></article>
+      <div class="rise" style="--i:2" id="token-zone" aria-live="polite"></div>
+    </section>
+  </main>
+</div>
+
+<footer class="foot">
+  <span>Reservas en línea con</span>
+  <svg width="84" height="20" viewBox="150 20 380 90" aria-label="Dientico" role="img">
+    <g transform="translate(150 0)" fill="none" stroke="#22113F" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="30" cy="76" r="18"/><path d="M48 34 V94"/><path d="M70 58 V94"/>
+      <path d="M92 76 H128 A18 18 0 1 0 122.7 88.7"/><path d="M150 58 V94 M150 76 A18 18 0 0 1 186 76 V94"/>
+      <path d="M212 34 V82 A12 12 0 0 0 224 94 H230 M200 58 H228"/><path d="M252 58 V94"/>
+      <path d="M304.7 63.3 A18 18 0 1 0 304.7 88.7"/><circle cx="345" cy="76" r="18"/>
+    </g>
+    <g transform="translate(150 0)" stroke="#22113F" stroke-width="4"><circle cx="70" cy="37" r="8" fill="#FFD23F"/><circle cx="252" cy="37" r="8" fill="#3DF5B0"/></g>
+  </svg>
+  <span style="flex-basis:100%">Prototipo con datos de ejemplo.</span>
+</footer>
+
+<div class="confetti-layer" aria-hidden="true" id="confetti"></div>
+<svg class="starburst" id="starburst" viewBox="0 0 200 200" aria-hidden="true"><path d="M100 4 L116 62 L172 30 L140 84 L196 100 L140 116 L172 170 L116 138 L100 196 L84 138 L28 170 L60 116 L4 100 L60 84 L28 30 L84 62Z" fill="#FFD23F" stroke="#22113F" stroke-width="5" stroke-linejoin="round"/></svg>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const reduce = () => RM.matches;
+const icon = (id, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============ Datos de ejemplo ============ */
+const CLINIC = { name: 'Consultorio Dental Demo', addr: 'Av. Francisco de Miranda, Chacao, Caracas' };
+const DOCS = {
+  laura:  { name: 'Dra. Laura Pérez', cov: '12345', spec: 'Odontopediatría y odontología general', ini: 'LP', tone: '' },
+  martin: { name: 'Dr. Martín Gómez', cov: '67890', spec: 'Estética dental y odontología general', ini: 'MG', tone: 'sun' }
+};
+const TREATS = [
+  { id: 'consulta', name: 'Consulta y diagnóstico', min: 30, price: 20, desc: 'Si no sabes qué necesitas, empieza por aquí.', who: ['laura', 'martin'] },
+  { id: 'limpieza', name: 'Limpieza', min: 45, price: 35, desc: 'Quitamos el sarro y te pulimos los dientes.', who: ['laura', 'martin'] },
+  { id: 'caries', name: 'Tratamiento de caries', min: 60, price: 40, desc: 'Limpiamos la caries y restauramos el diente.', who: ['laura', 'martin'] },
+  { id: 'blanqueamiento', name: 'Blanqueamiento', min: 90, price: 150, desc: 'En el consultorio, en una sola sesión.', who: ['martin'] }
+];
+const AM = ['8:00','8:30','9:00','9:30','10:00','10:30','11:00','11:30'];
+const PM = ['14:00','14:30','15:00','15:30','16:00','16:30'];
+
+const DAYS = (() => {
+  const out = []; const d = new Date(); d.setHours(12, 0, 0, 0);
+  while (out.length < 14) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0) out.push(new Date(d)); }
+  return out;
+})();
+
+/* ============ Estado ============ */
+const S = { step: 1, treat: null, doc: null, day: null, slot: null, booked: false, data: null, tokenState: 'pending', lastStep: 0, view: null };
+const docOf = () => S.slot ? S.slot.doc : (S.doc && S.doc !== 'any' ? S.doc : null);
+const skipDoc = () => S.treat && S.treat.who.length === 1;
+
+/* ============ Formatos ============ */
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const longDate = d => d.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' });
+const wd = d => d.toLocaleDateString('es-VE', { weekday: 'short' }).replace('.', '');
+const mo = d => d.toLocaleDateString('es-VE', { month: 'short' }).replace('.', '');
+function t12(t) {
+  const [h, m] = t.split(':').map(Number);
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return { hm: `${hh}:${String(m).padStart(2, '0')}`, ap: h < 12 ? 'a. m.' : 'p. m.' };
+}
+const tFull = t => { const x = t12(t); return `${x.hm} ${x.ap}`; };
+
+/* ============ Horarios simulados ============ */
+function slotsFor(i, who) {
+  const dow = DAYS[i].getDay();
+  const shifts = { laura: { am: dow >= 1 && dow <= 5, pm: dow === 2 || dow === 4 }, martin: { am: dow === 6, pm: dow >= 1 && dow <= 5 } };
+  const res = { am: new Map(), pm: new Map() };
+  if (i === 3) return { am: [], pm: [] }; // un día lleno, para ver el estado
+  const docs = who === 'any' ? S.treat.who : [who];
+  docs.forEach((k, di) => ['am', 'pm'].forEach(part => {
+    if (!shifts[k][part]) return;
+    (part === 'am' ? AM : PM).forEach((t, si) => {
+      const h = (i * 37 + si * 13 + di * 7 + (part === 'pm' ? 5 : 0)) % 10;
+      if (h < 4) return;
+      if (!res[part].has(t)) res[part].set(t, k);
+    });
+  }));
+  const toArr = m => [...m.entries()].map(([t, doc]) => ({ t, doc })).sort((a, b) => {
+    const p = x => x.split(':').map(Number); const [ah, am] = p(a.t), [bh, bm] = p(b.t); return ah * 60 + am - (bh * 60 + bm);
+  });
+  return { am: toArr(res.am), pm: toArr(res.pm) };
+}
+const countSlots = (i, who) => { const s = slotsFor(i, who); return s.am.length + s.pm.length; };
+
+/* ============ Tico: la mascota ============ */
+const ticos = () => $$('svg.tico');
+let moodTimer;
+function mood(m, opts = {}) {
+  clearTimeout(moodTimer);
+  ticos().forEach(t => t.dataset.mood = m);
+  if (opts.say) say(opts.say);
+  if (opts.move) move(opts.move);
+  if (opts.back) moodTimer = setTimeout(() => ticos().forEach(t => t.dataset.mood = opts.backTo || 'idle'), opts.back);
+}
+const MOVES = {
+  hop:   [[{transform:'none'},{transform:'translateY(4px) scale(1.08,.9)',offset:.18},{transform:'translateY(-18px) scale(.95,1.06)',offset:.5},{transform:'translateY(0) scale(1.05,.95)',offset:.8},{transform:'none'}], {duration:620,easing:'ease-out'}],
+  jump:  [[{transform:'none'},{transform:'translateY(6px) scale(1.12,.85)',offset:.12},{transform:'translateY(-64px) rotate(-12deg) scale(.94,1.08)',offset:.42},{transform:'translateY(0) rotate(6deg) scale(1.1,.9)',offset:.68},{transform:'translateY(-14px) rotate(-3deg)',offset:.84},{transform:'none'}], {duration:1200,easing:'ease-in-out'}],
+  shake: [[{transform:'none'},{transform:'translateX(-6px) rotate(-4deg)',offset:.2},{transform:'translateX(6px) rotate(4deg)',offset:.45},{transform:'translateX(-4px)',offset:.7},{transform:'none'}], {duration:450,easing:'ease-in-out'}],
+  wave:  [[{transform:'none'},{transform:'rotate(-9deg)',offset:.25},{transform:'rotate(8deg)',offset:.5},{transform:'rotate(-5deg)',offset:.75},{transform:'none'}], {duration:900,easing:'ease-in-out'}],
+  droop: [[{transform:'none'},{transform:'translateY(6px) scale(1.04,.94)'}], {duration:500,easing:'ease-out',fill:'forwards'}]
+};
+function move(kind) {
+  if (reduce()) return;
+  ticos().forEach(t => {
+    const g = $('.t-jump', t);
+    g.getAnimations().forEach(a => a.cancel());
+    g.animate(...MOVES[kind]);
+  });
+}
+function say(text) {
+  $$('[data-bubble]').forEach(b => {
+    b.textContent = text;
+    if (!reduce() && b.offsetParent) b.animate([{transform:'scale(.82) rotate(-2deg)',opacity:.4},{transform:'none',opacity:1}], {duration:340,easing:'cubic-bezier(.34,1.56,.64,1)'});
+  });
+}
+// Los ojos siguen el puntero (solo con mouse y sin movimiento reducido)
+let lookLock = null, raf = 0, px = 0, py = 0;
+function lookAll() {
+  raf = 0;
+  ticos().forEach(t => {
+    const look = $('.t-look', t); const r = t.getBoundingClientRect();
+    if (!r.width) return;
+    let dx, dy;
+    if (lookLock) { dx = lookLock[0]; dy = lookLock[1]; }
+    else {
+      const cx = r.left + r.width / 2, cy = r.top + r.height * .4;
+      const ang = Math.atan2(py - cy, px - cx), dist = Math.min(1, Math.hypot(px - cx, py - cy) / 260);
+      dx = Math.cos(ang) * 4.5 * dist; dy = Math.sin(ang) * 3.5 * dist;
+    }
+    look.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px)`;
+  });
+}
+addEventListener('pointermove', e => {
+  if (reduce() || e.pointerType !== 'mouse') return;
+  px = e.clientX; py = e.clientY; if (!raf) raf = requestAnimationFrame(lookAll);
+}, { passive: true });
+function setLook(v) { lookLock = v; if (!raf) raf = requestAnimationFrame(lookAll); }
+
+/* ============ Fiesta: confeti y estallido ============ */
+function visibleTico() { return ticos().find(t => t.getBoundingClientRect().width > 0); }
+function celebrate(n = 110) {
+  if (reduce()) return;
+  const t = visibleTico(); if (!t) return;
+  const r = t.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height / 2;
+  const sb = $('#starburst');
+  sb.style.left = x + 'px'; sb.style.top = y + 'px';
+  sb.animate([{opacity:0,transform:'scale(.2) rotate(0)'},{opacity:1,transform:'scale(1) rotate(30deg)',offset:.35},{opacity:0,transform:'scale(1.5) rotate(60deg)'}], {duration:900,easing:'ease-out'});
+  const layer = $('#confetti');
+  const colors = ['#3DF5B0', '#FFD23F', '#6A2BDB', '#FFFFFF', '#E8DDFF'];
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('i');
+    p.className = 'cf c' + (i % 3);
+    p.style.background = colors[i % colors.length];
+    p.style.left = (x - 6) + 'px'; p.style.top = (y - 8) + 'px';
+    layer.appendChild(p);
+    const ang = (-90 + (Math.random() * 150 - 75)) * Math.PI / 180;
+    const v = 160 + Math.random() * 300;
+    const dx = Math.cos(ang) * v, dy = Math.sin(ang) * v;
+    const fall = innerHeight * .55 + Math.random() * 260;
+    const rot = Math.random() * 900 - 450;
+    p.animate([
+      { transform: 'translate(0,0) rotate(0) scale(.3)', opacity: 1 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${rot * .4}deg) scale(1)`, opacity: 1, offset: .3, easing: 'cubic-bezier(.3,0,.7,1)' },
+      { transform: `translate(${dx * 1.35}px, ${dy + fall}px) rotate(${rot}deg) scale(.9)`, opacity: 0 }
+    ], { duration: 1700 + Math.random() * 1300, delay: Math.random() * 140, easing: 'cubic-bezier(.12,.8,.3,1)' }).finished.then(() => p.remove());
+  }
+}
+
+/* ============ Plantillas ============ */
+function treatCard(t, pressed) {
+  return `<button type="button" class="opt slab" data-treat="${t.id}" ${pressed != null ? `aria-pressed="${pressed}"` : ''}>
+    <span class="t">${t.name}</span>
+    <span class="d">${t.desc}</span>
+    <span class="meta"><span class="chip">${icon('clock')}${t.min} min</span>${t.who.length === 1 ? `<span class="chip">Con ${DOCS[t.who[0]].name}</span>` : ''}</span>
+    <span class="price"><span class="vh">Precio: </span>$${t.price}</span>
+    <span class="stamp" aria-hidden="true">${icon('check')}</span>
+  </button>`;
+}
+function docBlock(k) {
+  const d = DOCS[k];
+  return `<span class="avatar ${d.tone}" aria-hidden="true">${d.ini}</span>
+    <span class="who"><span class="name">${d.name}</span><span class="spec">${d.spec}</span>
+    <span class="cov">${icon('seal')}N.º COV ${d.cov}</span></span>`;
+}
+
+function renderHome() {
+  $('#team').innerHTML = Object.keys(DOCS).map(k => `<div class="doc slab">${docBlock(k)}</div>`).join('');
+  $('#home-treats').innerHTML = TREATS.map(t => treatCard(t)).join('');
+}
+
+/* ============ Rutas ============ */
+function parse() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h.startsWith('reserva')) return { view: 'book', step: Math.min(4, Math.max(1, +h.split('/')[1] || 1)) };
+  if (h === 'listo') return { view: 'done' };
+  if (h.startsWith('t/')) return { view: 'token' };
+  return { view: 'home' };
+}
+function go(hash) { if (location.hash === '#' + hash) route(); else location.hash = hash; }
+
+function demoBooking() {
+  S.treat = TREATS[1]; S.doc = 'laura';
+  S.day = DAYS.findIndex((d, i) => countSlots(i, 'laura') > 0);
+  const s = slotsFor(S.day, 'laura'); S.slot = s.am[0] || s.pm[0];
+  S.slotDay = S.day;
+  S.data = S.data || { nombre: 'Ana', apellido: 'Rodríguez', cel: '0414 123 4567', email: '' };
+  S.booked = true;
+}
+
+function showView(v) {
+  const next = $(`.view[data-v="${v}"]`);
+  const cur = $$('.view').find(x => !x.hidden);
+  document.body.dataset.view = v;
+  if (cur !== next || S.view === null) {
+    if (cur && cur !== next) { cur.hidden = true; cur.classList.remove('is-entering'); }
+    next.hidden = false;
+    next.classList.remove('is-entering'); void next.offsetWidth; next.classList.add('is-entering');
+    if (v !== 'home') {
+      const top = $('.layout').getBoundingClientRect().top + scrollY - 8;
+      if (scrollY > top) scrollTo({ top, behavior: reduce() ? 'auto' : 'smooth' });
+    }
+  }
+  S.view = v;
+}
+
+function route() {
+  const r = parse();
+  if (r.view === 'home') {
+    showView('home'); mood('idle', { say: '¡Hola! Soy Tico. Reservamos en un minuto.' });
+    return;
+  }
+  if (r.view === 'book') {
+    let n = r.step;
+    if (n >= 2 && !S.treat) n = 1;
+    if (n === 2 && skipDoc()) n = S.lastStep >= 3 ? 1 : 3;
+    if (n >= 3 && !S.doc) n = S.treat ? 2 : 1;
+    if (n === 4 && !S.slot) n = 3;
+    if (n !== r.step) history.replaceState(null, '', '#reserva/' + n);
+    showView('book');
+    showStep(n);
+    return;
+  }
+  if (r.view === 'done') {
+    if (!S.booked) demoBooking();
+    showView('done'); renderDone();
+    return;
+  }
+  if (r.view === 'token') {
+    if (!S.booked) demoBooking();
+    showView('token'); renderToken();
+  }
+}
+addEventListener('hashchange', route);
+
+/* ============ Pasos ============ */
+let stepRun = 0;
+async function showStep(n) {
+  const run = ++stepRun;
+  const dir = n >= S.lastStep ? 1 : -1;
+  const cur = $$('.step').find(p => !p.hidden);
+  const next = $('#step-' + n);
+  updateProgress(n);
+  if (cur && cur !== next && !reduce()) {
+    try { await cur.animate([{opacity:1,transform:'none'},{opacity:0,transform:`translateX(${-32 * dir}px)`}], {duration:150,easing:'ease-in'}).finished; } catch (e) {}
+    if (run !== stepRun) return;
+  }
+  $$('.step').forEach(p => p.hidden = p !== next);
+  fillStep(n);
+  if (!reduce()) {
+    next.animate([{opacity:0,transform:`translateX(${36 * dir}px)`},{opacity:1,transform:'none'}], {duration:360,easing:'cubic-bezier(.22,1,.36,1)'});
+    $$('.opt, .day, .field, .sheet', next).forEach((el, i) => el.animate(
+      [{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'none'}],
+      {duration:420,delay:60 + Math.min(i, 8) * 45,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'}));
+  }
+  S.step = n; S.lastStep = n;
+  $('.step-title', next).focus({ preventScroll: true });
+}
+
+function updateProgress(n) {
+  $('#step-count').innerHTML = `Paso <b>${n}</b> de 4`;
+  $('#fill').style.transform = `scaleX(${n / 4})`;
+  const track = $('.track'); const w = track.clientWidth;
+  $('#marker').style.transform = `translateX(${Math.max(0, w * n / 4 - 30)}px)`;
+  $$('#steps li').forEach((li, i) => {
+    const k = i + 1;
+    li.classList.toggle('done', k < n);
+    if (k === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    li.querySelector('.lbl').textContent = ['Tratamiento', 'Profesional', 'Día y hora', 'Tus datos'][i] + (k === 2 && skipDoc() && n > 2 ? ' (automático)' : '');
+  });
+  const picks = [];
+  if (S.treat && n > 1) picks.push([1, `${S.treat.name}, ${S.treat.min} min`, 'Cambiar tratamiento']);
+  if (S.doc && n > 2) picks.push([skipDoc() ? 1 : 2, S.doc === 'any' ? (S.slot && n > 3 ? DOCS[S.slot.doc].name : 'Cualquiera disponible') : DOCS[S.doc].name, 'Cambiar profesional']);
+  if (S.slot && n > 3) picks.push([3, `${cap(wd(DAYS[S.day]))} ${DAYS[S.day].getDate()}, ${tFull(S.slot.t)}`, 'Cambiar día y hora']);
+  $('#picked').innerHTML = picks.map(([s, txt, lab]) => `<button type="button" class="pick" data-goto="${s}" aria-label="${lab}: ${esc(txt)}">${icon('edit')}<span>${esc(txt)}</span></button>`).join('');
+}
+addEventListener('resize', () => { if (S.view === 'book') updateProgress(S.step); });
+
+const BUBBLES = {
+  1: '¿Qué te hacemos hoy?',
+  2: '¿Con quién te sientes en confianza?',
+  3: '¿Cuándo te queda bien?',
+  4: 'Ya casi. Solo faltan tus datos.'
+};
+
+function fillStep(n) {
+  if (n === 1) {
+    $('#opts-treat').innerHTML = TREATS.map(t => treatCard(t, S.treat === t)).join('');
+    mood('curioso', { say: BUBBLES[1] }); setLook(null);
+  }
+  if (n === 2) {
+    const list = ['any', ...S.treat.who];
+    $('#opts-doc').innerHTML = list.map(k => k === 'any'
+      ? `<button type="button" class="opt doc-opt slab" data-doc="any" aria-pressed="${S.doc === 'any'}">
+           <span class="duo" aria-hidden="true"><span class="avatar">LP</span><span class="avatar sun">MG</span></span>
+           <span class="who"><span class="name t">Cualquiera disponible</span><span class="spec d">Te mostramos todos los horarios libres.</span></span>
+           <span class="stamp" aria-hidden="true">${icon('check')}</span></button>`
+      : `<button type="button" class="opt doc-opt slab" data-doc="${k}" aria-pressed="${S.doc === k}">${docBlock(k)}<span class="stamp" aria-hidden="true">${icon('check')}</span></button>`).join('');
+    mood('curioso', { say: BUBBLES[2] }); setLook(null);
+  }
+  if (n === 3) {
+    const who = S.doc;
+    if (S.day == null || countSlots(S.day, who) === 0) S.day = DAYS.findIndex((d, i) => countSlots(i, who) > 0);
+    renderDays(); renderSlots(false);
+    mood(S.slot ? 'feliz' : 'curioso', { say: S.slot ? 'Buena hora. ¡Dale a Continuar!' : BUBBLES[3] }); setLook(null);
+  }
+  if (n === 4) {
+    const d = DAYS[S.day], doc = DOCS[S.slot.doc];
+    $('#sheet').innerHTML = `<span class="big">${cap(longDate(d))}, ${tFull(S.slot.t)}</span>
+      <span>${S.treat.name}, ${S.treat.min} min, $${S.treat.price}</span>
+      <span class="sm">Con ${doc.name} (COV ${doc.cov}), en ${CLINIC.name}</span>`;
+    mood('idle', { say: BUBBLES[4] });
+  }
+}
+
+function renderDays() {
+  const who = S.doc;
+  $('#days').innerHTML = DAYS.map((d, i) => {
+    const c = countSlots(i, who);
+    const label = `${longDate(d)}, ${c ? c + (c === 1 ? ' hora libre' : ' horas libres') : 'sin citas libres'}`;
+    return `<button type="button" class="day slab ${c ? '' : 'full'}" data-day="${i}" aria-pressed="${i === S.day}" ${c ? '' : 'aria-disabled="true"'} aria-label="${label}">
+      <span class="wd" aria-hidden="true">${wd(d)}</span><span class="dn" aria-hidden="true">${d.getDate()}</span><span class="mo" aria-hidden="true">${c ? mo(d) : 'lleno'}</span></button>`;
+  }).join('');
+}
+
+let slotTimer;
+function renderSlots(withSkeleton) {
+  const box = $('#slots');
+  clearTimeout(slotTimer);
+  const draw = () => {
+    const s = slotsFor(S.day, S.doc);
+    box.setAttribute('aria-busy', 'false');
+    const part = (title, sub, arr) => arr.length ? `<div class="part"><h3>${title} <small>${sub}</small></h3><div class="pills">${arr.map(x => {
+      const f = t12(x.t); const on = S.slot && S.slot.t === x.t && S.slotDay === S.day;
+      return `<button type="button" class="pill slab" data-t="${x.t}" data-doc="${x.doc}" aria-pressed="${!!on}" aria-label="${tFull(x.t)}${S.doc === 'any' ? ', con ' + DOCS[x.doc].name : ''}">${f.hm}</button>`;
+    }).join('')}</div></div>` : '';
+    const html = part('Mañana', `a. m., ${s.am.length} libres`, s.am) + part('Tarde', `p. m., ${s.pm.length} libres`, s.pm);
+    box.innerHTML = html || `<div class="empty"><p><b>Este día ya está lleno.</b> Elige otro día de la franja de arriba.</p></div>`;
+    box.style.display = 'grid'; box.style.gap = '18px';
+    if (withSkeleton && !reduce()) $$('.pill', box).forEach((p, i) => p.animate([{opacity:0,transform:'scale(.8)'},{opacity:1,transform:'none'}], {duration:300,delay:i * 22,easing:'cubic-bezier(.34,1.56,.64,1)',fill:'backwards'}));
+    updateWho();
+  };
+  if (withSkeleton) {
+    box.setAttribute('aria-busy', 'true');
+    box.innerHTML = `<div class="part"><div class="pills">${'<div class="skel"></div>'.repeat(6)}</div></div>`;
+    slotTimer = setTimeout(draw, reduce() ? 0 : 380);
+  } else draw();
+}
+function updateWho() {
+  const note = $('#who-note'); const btn = $('#to-4'); const why = $('#why-3');
+  const ok = S.slot && S.slotDay === S.day;
+  btn.disabled = !ok; why.hidden = !!ok;
+  if (ok && S.doc === 'any') { note.hidden = false; note.innerHTML = `${icon('user')}<span>Te atiende ${DOCS[S.slot.doc].name}.</span>`; }
+  else note.hidden = true;
+}
+
+/* ============ Eventos ============ */
+document.addEventListener('click', e => {
+  const el = e.target.closest('button, a');
+  if (!el) return;
+
+  if (el.id === 'hero-book') { S.lastStep = 0; go('reserva/1'); return; }
+
+  if (el.matches('[data-treat]')) {
+    const t = TREATS.find(x => x.id === el.dataset.treat);
+    const changed = S.treat !== t;
+    S.treat = t;
+    if (changed) { S.doc = skipDoc() ? t.who[0] : null; S.slot = null; S.day = null; }
+    if (S.view === 'book') {
+      $$('[data-treat]').forEach(b => b.setAttribute('aria-pressed', b === el));
+    }
+    const brillo = t.id === 'blanqueamiento';
+    mood(brillo ? 'brillo' : 'feliz', { say: brillo ? '¡Vas a brillar!' : '¡Buena elección!', move: 'hop' });
+    setTimeout(() => go('reserva/' + (skipDoc() ? 3 : 2)), S.view === 'book' && !reduce() ? 420 : 0);
+    if (S.view !== 'book') S.lastStep = 1;
+    return;
+  }
+
+  if (el.matches('[data-doc]') && el.classList.contains('doc-opt')) {
+    const k = el.dataset.doc;
+    if (S.doc !== k) { S.slot = null; S.day = null; }
+    S.doc = k;
+    $$('.doc-opt').forEach(b => b.setAttribute('aria-pressed', b === el));
+    mood('feliz', { say: k === 'any' ? '¡Perfecto! Te enseño todo lo libre.' : `¡${DOCS[k].name.split(' ')[1]} te va a encantar!`, move: 'hop' });
+    setTimeout(() => go('reserva/3'), reduce() ? 0 : 420);
+    return;
+  }
+
+  if (el.matches('.day')) {
+    if (el.getAttribute('aria-disabled') === 'true') {
+      mood('duda', { say: 'Ese día está lleno. Prueba otro.', move: 'shake', back: 1600, backTo: 'curioso' });
+      return;
+    }
+    const i = +el.dataset.day; if (i === S.day) return;
+    S.day = i;
+    $$('.day').forEach(b => b.setAttribute('aria-pressed', b === el));
+    renderSlots(true);
+    mood('curioso', { say: '¿A qué hora te queda mejor?' });
+    return;
+  }
+
+  if (el.matches('.pill')) {
+    S.slot = { t: el.dataset.t, doc: el.dataset.doc }; S.slotDay = S.day;
+    $$('.pill').forEach(b => b.setAttribute('aria-pressed', b === el));
+    updateWho();
+    mood('feliz', { say: 'Buena hora. ¡Dale a Continuar!', move: 'hop' });
+    return;
+  }
+
+  if (el.id === 'to-4') { go('reserva/4'); return; }
+
+  if (el.id === 'back') {
+    const prev = S.step === 1 ? 0 : (S.step === 3 && skipDoc() ? 1 : S.step - 1);
+    if (!prev) go('inicio'); else go('reserva/' + prev);
+    return;
+  }
+
+  if (el.matches('[data-goto]')) { go('reserva/' + el.dataset.goto); return; }
+
+  if (el.id === 'ics') { downloadIcs(); mood('feliz', { say: '¡Anotado en tu calendario!', move: 'hop', back: 2000 }); return; }
+
+  if (el.id === 'tk-yes') { tokenSet('confirmed'); return; }
+  if (el.id === 'tk-no') { tokenSet('ask'); return; }
+  if (el.id === 'tk-back') { tokenSet('pending'); return; }
+  if (el.id === 'tk-cancel') { tokenSet('cancelled'); return; }
+  if (el.id === 'tk-new') { S.slot = null; S.booked = false; S.tokenState = 'pending'; S.lastStep = 0; go('reserva/1'); return; }
+  if (el.id === 'tk-ics') { downloadIcs(); return; }
+});
+
+/* ============ Formulario ============ */
+const F = id => $('#f-' + id);
+const RULES = {
+  nombre: v => v.trim().length >= 2 ? '' : 'Escribe tu nombre.',
+  apellido: v => v.trim().length >= 2 ? '' : 'Escribe tu apellido.',
+  cedula: v => {
+    const tipo = F('tipo').value; const d = v.replace(/\D/g, '');
+    if (tipo === 'P') return v.trim().length >= 5 ? '' : 'Escribe el número de pasaporte tal como aparece.';
+    return d.length >= 6 && d.length <= 9 ? '' : 'Revisa la cédula: escribe solo los números, por ejemplo 12.345.678.';
+  },
+  cel: v => {
+    const d = v.replace(/\D/g, '').replace(/^58/, '');
+    const n = d.startsWith('0') ? d : '0' + d;
+    return /^04(12|14|16|22|24|26)\d{7}$/.test(n) ? '' : 'Revisa el celular: empieza por 0412, 0414, 0416, 0422, 0424 o 0426 y tiene 11 números.';
+  },
+  email: v => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Revisa el correo, por ejemplo: ana@gmail.com. Si no tienes, déjalo vacío.',
+  ok: () => F('ok').checked ? '' : 'Para reservar, acepta que el consultorio use tus datos para gestionar la cita.'
+};
+function showErr(k, msg) {
+  const input = F(k); const e = $('#e-' + k);
+  input.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  if (k === 'cedula') F('tipo').setAttribute('aria-invalid', msg ? 'true' : 'false');
+  e.hidden = !msg; e.innerHTML = msg ? `${icon('alert')}<span>${msg}</span>` : '';
+}
+function check(k) { const msg = RULES[k](k === 'ok' ? '' : F(k).value); showErr(k, msg); return msg; }
+['nombre', 'apellido', 'cedula', 'cel', 'email'].forEach(k => {
+  F(k).addEventListener('blur', () => { if (F(k).value || F(k).getAttribute('aria-invalid') === 'true') check(k); });
+  F(k).addEventListener('input', () => { if (F(k).getAttribute('aria-invalid') === 'true' && !RULES[k](F(k).value)) showErr(k, ''); });
+});
+F('cedula').addEventListener('blur', () => {
+  if (F('tipo').value === 'P') return;
+  const d = F('cedula').value.replace(/\D/g, '');
+  if (d.length >= 6 && d.length <= 9) F('cedula').value = d.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+});
+F('cel').addEventListener('blur', () => {
+  let d = F('cel').value.replace(/\D/g, '').replace(/^58/, ''); if (d && !d.startsWith('0')) d = '0' + d;
+  if (d.length === 11) F('cel').value = `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7)}`;
+});
+F('ok').addEventListener('change', () => {
+  if (F('ok').checked) { showErr('ok', ''); mood('feliz', { say: '¡Eso es! Ya puedes confirmar.', move: 'hop', back: 1800 }); }
+});
+$('#form').addEventListener('focusin', e => { if (e.target.matches('.input, .select')) { setLook([0, 3.5]); if ($('svg.tico').dataset.mood === 'idle') mood('escribe'); } });
+$('#form').addEventListener('focusout', () => setTimeout(() => { if (!$('#form').contains(document.activeElement)) setLook(null); }, 0));
+
+$('#form').addEventListener('submit', e => {
+  e.preventDefault();
+  const keys = ['nombre', 'apellido', 'cedula', 'cel', 'email', 'ok'];
+  const bad = keys.filter(k => check(k));
+  if (bad.length) {
+    const first = F(bad[0]);
+    first.focus();
+    const field = first.closest('.field');
+    if (!reduce() && field) { field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake'); }
+    mood('duda', { say: bad.length === 1 ? 'Falta un detalle. Míralo en rojo.' : `Faltan ${bad.length} detalles. Míralos en rojo.`, move: 'shake' });
+    return;
+  }
+  const btn = $('#submit');
+  btn.setAttribute('aria-busy', 'true'); btn.disabled = true; btn.textContent = 'Reservando…';
+  mood('curioso', { say: 'Guardando tu cita…' });
+  setTimeout(() => {
+    S.data = { nombre: F('nombre').value.trim(), apellido: F('apellido').value.trim(), cel: F('cel').value.trim(), email: F('email').value.trim() };
+    S.booked = true; S.tokenState = 'pending';
+    btn.removeAttribute('aria-busy'); btn.disabled = false; btn.textContent = 'Confirmar cita';
+    go('listo');
+  }, reduce() ? 150 : 900);
+});
+
+/* ============ Confirmación ============ */
+function ticketHTML(statusHTML = '') {
+  const d = DAYS[S.day], doc = DOCS[S.slot.doc], f = t12(S.slot.t);
+  return `<div class="ticket-top"><span>${CLINIC.name}</span><span class="sticker">$${S.treat.price}</span></div>
+  <div class="ticket-body">
+    <p class="date">${cap(longDate(d))}</p>
+    <p class="time">${f.hm}<small>${f.ap}</small></p>
+    ${statusHTML}
+    <div class="lines">
+      <div>${icon('check')}<span>${S.treat.name}, ${S.treat.min} min</span></div>
+      <div>${icon('seal')}<span>${doc.name}, N.º COV ${doc.cov}</span></div>
+      <div>${icon('pin')}<span>${CLINIC.addr}</span></div>
+      <div>${icon('cash')}<span>Pagas en el consultorio, en $ o en Bs a la tasa BCV del día.</span></div>
+    </div>
+  </div>`;
+}
+function renderDone() {
+  const name = S.data && S.data.nombre ? S.data.nombre : 'Ana';
+  $('#done-title').textContent = `¡Listo, ${name}! Tu cita quedó reservada.`;
+  const cel = S.data && S.data.cel ? S.data.cel : '0414 123 4567';
+  $('#done-sub').textContent = `Un día antes te escribimos por WhatsApp al ${cel} para que la confirmes.` + (S.data && S.data.email ? ` La confirmación también va a ${S.data.email}.` : '');
+  $('#ticket').innerHTML = ticketHTML();
+  const d = DAYS[S.day];
+  const msg = `Mi cita en ${CLINIC.name}: ${S.treat.name}, ${longDate(d)} a las ${tFull(S.slot.t)}, con ${DOCS[S.slot.doc].name}. ${CLINIC.addr}.`;
+  $('#wa-save').href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  $('#done-title').focus({ preventScroll: true });
+  mood('fiesta', { say: '¡Nos vemos pronto!', back: 3200, backTo: 'feliz' });
+  if (!reduce()) {
+    $('#ticket').animate([{transform:'translateY(40px) rotate(-3deg)',opacity:0},{transform:'translateY(-6px) rotate(1deg)',opacity:1,offset:.7},{transform:'none',opacity:1}], {duration:700,delay:260,easing:'ease-out',fill:'backwards'});
+  }
+  requestAnimationFrame(() => setTimeout(() => { move('jump'); celebrate(); setTimeout(() => celebrate(50), 520); }, 140));
+}
+
+function downloadIcs() {
+  const d = DAYS[S.day]; const [h, m] = S.slot.t.split(':').map(Number);
+  const start = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h + 4, m)); // Caracas es UTC−4
+  const end = new Date(start.getTime() + S.treat.min * 60000);
+  const z = x => x.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Dientico//Prototipo//ES', 'BEGIN:VEVENT',
+    'UID:' + Date.now() + '@dientico.app', 'DTSTAMP:' + z(new Date()), 'DTSTART:' + z(start), 'DTEND:' + z(end),
+    `SUMMARY:${S.treat.name} en ${CLINIC.name}`, 'LOCATION:Av. Francisco de Miranda\\, Chacao\\, Caracas',
+    `DESCRIPTION:Con ${DOCS[S.slot.doc].name}. Para confirmar o cancelar: dientico.app/t/7Kx9Qa`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+  const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'cita-consultorio-dental-demo.ics';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ============ /t/<token> ============ */
+function renderToken() {
+  const st = S.tokenState;
+  const status = st === 'confirmed' ? `<span class="status ok">${icon('check')}Confirmada</span>`
+    : st === 'cancelled' ? `<span class="status off">${icon('x')}Cancelada</span>`
+    : `<span class="status">${icon('clock')}Pendiente de confirmar</span>`;
+  const tk = $('#token-ticket');
+  tk.innerHTML = ticketHTML(status);
+  tk.classList.toggle('cancelled', st === 'cancelled');
+  const d = DAYS[S.day];
+  const dayTxt = `el ${longDate(d).split(',')[0]} ${d.getDate()} a las ${tFull(S.slot.t)}`;
+  const z = $('#token-zone');
+  if (st === 'pending') {
+    z.innerHTML = `<div class="actions"><button class="btn primary slab" type="button" id="tk-yes">Confirmo que voy</button>
+      <button class="btn quiet" type="button" id="tk-no">No puedo ir, liberar la cita</button></div>`;
+    mood('idle', { say: '¿Vienes? Avísale al consultorio.' });
+  } else if (st === 'ask') {
+    z.innerHTML = `<div class="ask slab"><h3>¿Liberamos tu cita?</h3><p>El horario queda libre para otra persona. No se puede deshacer.</p>
+      <button class="btn danger slab" type="button" id="tk-cancel">Sí, cancelar mi cita</button>
+      <button class="btn secondary slab" type="button" id="tk-back">No, volver</button></div>`;
+    mood('duda', { say: '¿Seguro? Te vamos a extrañar.' });
+  } else if (st === 'confirmed') {
+    z.innerHTML = `<div class="actions"><p class="token-msg">¡Listo! Te esperamos ${dayTxt}.</p>
+      <button class="btn primary slab" type="button" id="tk-ics">${icon('cal')}Agregar al calendario</button>
+      <button class="btn quiet" type="button" id="tk-no">No puedo ir, liberar la cita</button></div>`;
+  } else {
+    z.innerHTML = `<div class="actions"><p class="token-msg">Cancelaste tu cita. Si quieres, elige otro horario.</p>
+      <button class="btn primary slab" type="button" id="tk-new">Reservar otra cita</button></div>`;
+  }
+}
+function tokenSet(st) {
+  S.tokenState = st; renderToken();
+  if (st === 'confirmed') { mood('fiesta', { say: '¡Qué bueno! Te esperamos.', back: 2600, backTo: 'feliz' }); move('hop'); celebrate(60); $('.token-msg').setAttribute('tabindex', '-1'); $('.token-msg').focus(); }
+  if (st === 'cancelled') { mood('triste', { say: 'Ok. Aquí estaré cuando quieras.' }); move('droop'); $('.token-msg').setAttribute('tabindex', '-1'); $('.token-msg').focus(); }
+  if (st === 'ask') $('#tk-cancel').focus();
+  if (st === 'pending') $('#tk-no').focus();
+}
+
+/* ============ Inicio ============ */
+renderHome();
+route();
+if (!reduce()) setTimeout(() => move('wave'), 1100);
+setTimeout(() => document.body.classList.remove('load'), 1600);
+})();
+</script>
+</body>
+</html>
